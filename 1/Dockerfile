@@ -5,7 +5,7 @@ FROM centos:centos7
 # This image provides a Jenkins server, primarily intended for integration with
 # OpenShift v3.
 #
-# Volumes: 
+# Volumes:
 # * /var/jenkins_home
 # Environment:
 # * $JENKINS_PASSWORD - Password for the Jenkins 'admin' user.
@@ -42,6 +42,10 @@ COPY ./contrib/openshift /opt/openshift
 COPY ./contrib/jenkins /usr/local/bin
 ADD ./contrib/s2i /usr/libexec/s2i
 
+RUN && \
+## Prevent admins from changing master to slave security options
+chmod 400  $JENKINS_HOME/secrets/slave-to-master-security-kill-switch
+
 RUN /usr/local/bin/plugins.sh /opt/openshift/base-plugins.txt && \
     # need to create <plugin>.pinned files when upgrading "core" plugins like credentials or subversion that are bundled with the jenkins server
     touch /opt/openshift/plugins/credentials.jpi.pinned && \
@@ -50,7 +54,8 @@ RUN /usr/local/bin/plugins.sh /opt/openshift/base-plugins.txt && \
     touch /opt/openshift/plugins/script-security.jpi.pinned && \
     chown -R 1001:0 /opt/openshift && \
     /usr/local/bin/fix-permissions /opt/openshift && \
-    /usr/local/bin/fix-permissions /var/lib/jenkins
+    /usr/local/bin/fix-permissions /var/lib/jenkins && \
+    echo "false" > $JENKINS_HOME/secrets/slave-to-master-security-kill-switch
 
 VOLUME ["/var/lib/jenkins"]
 
